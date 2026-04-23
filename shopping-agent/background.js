@@ -171,7 +171,7 @@ async function runAgent() {
     { role: "user", parts: [{ text: "Should I buy this product?" }] },
   ];
 
-  sendStep({ kind: "info", text: "🛒 Agent started" });
+  sendStep({ kind: "info", text: `🛒 Agent started with ${MODEL_NAME}` });
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
     //Respect Gemini free-tier rate limits: pause between iterations
@@ -273,4 +273,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ started: true });
     return true;
   }
+});
+
+// open side panel when user clicks on the extension icon
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((err) => console.error(err));
 });
