@@ -2,6 +2,8 @@
 
 An agentic AI Chrome extension that analyzes any Amazon India product page and tells you whether to **buy it here**, **buy it elsewhere**, or **skip it** — by comparing prices across Indian retailers and checking real reviews, all through a live, visible reasoning chain.
 
+<img width="800" height="500" alt="Image" src="https://github.com/user-attachments/assets/1c45a574-c923-44ca-8768-5be2430aa4c0" />
+
 ---
 
 ## ✨ What It Does
@@ -14,7 +16,7 @@ You're shopping on Amazon India. You see a product. You wonder:
 
 Click the extension icon. Watch the agent reason through those exact questions in real time — every thought, every tool call, every result — and deliver a verdict.
 
-### Example run
+### LLM logs on actual run
 
 ```
 Shopping Agent
