@@ -1,4 +1,10 @@
-import { GEMINI_API_KEY, SERPER_API_KEY, MODEL_NAME, MAX_ITERATIONS } from "./config.js";
+import {
+  GEMINI_API_KEY,
+  SERPER_API_KEY,
+  MODEL_NAME,
+  MAX_ITERATIONS,
+  THROTTLE_MS,
+} from "./config.js";
 
 // ============================================================
 // TOOL IMPLEMENTATIONS
@@ -11,10 +17,14 @@ async function getCurrentProduct() {
     return { error: "Please open an amazon.in product page first." };
   }
   try {
-    const result = await chrome.tabs.sendMessage(tab.id, { type: "GET_PRODUCT" });
+    const result = await chrome.tabs.sendMessage(tab.id, {
+      type: "GET_PRODUCT",
+    });
     return result || { error: "No response from content script." };
   } catch (e) {
-    return { error: `Content script not ready: ${e.message}. Try reloading the Amazon tab.` };
+    return {
+      error: `Content script not ready: ${e.message}. Try reloading the Amazon tab.`,
+    };
   }
 }
 
@@ -28,7 +38,7 @@ async function searchWeb({ query }) {
     body: JSON.stringify({ q: query, gl: "in", num: 8 }),
   });
   const data = await resp.json();
-  const results = (data.organic || []).slice(0, 8).map(item => ({
+  const results = (data.organic || []).slice(0, 8).map((item) => ({
     title: item.title,
     snippet: item.snippet,
     link: item.link,
@@ -38,7 +48,9 @@ async function searchWeb({ query }) {
 
 async function fetchPageText({ url }) {
   try {
-    const resp = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 shopping-agent" } });
+    const resp = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 shopping-agent" },
+    });
     const html = await resp.text();
     // Very naive text extraction — strip tags and whitespace
     const text = html
@@ -66,7 +78,8 @@ const TOOL_REGISTRY = {
 const TOOL_DECLARATIONS = [
   {
     name: "get_current_product",
-    description: "Get the product the user is currently viewing (name, price, site, url). Call this FIRST.",
+    description:
+      "Get the product the user is currently viewing (name, price, site, url). Call this FIRST.",
     parameters: { type: "object", properties: {} },
   },
   {
@@ -81,7 +94,8 @@ const TOOL_DECLARATIONS = [
   },
   {
     name: "fetch_page_text",
-    description: "Fetch the text content of a specific URL. Use when a search snippet isn't enough.",
+    description:
+      "Fetch the text content of a specific URL. Use when a search snippet isn't enough.",
     parameters: {
       type: "object",
       properties: { url: { type: "string", description: "Full URL to fetch" } },
@@ -150,6 +164,8 @@ function sendStep(step) {
   });
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function runAgent() {
   const history = [
     { role: "user", parts: [{ text: "Should I buy this product?" }] },
@@ -158,6 +174,15 @@ async function runAgent() {
   sendStep({ kind: "info", text: "🛒 Agent started" });
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+    //Respect Gemini free-tier rate limits: pause between iterations
+
+    if (iteration > 0) {
+      sendStep({
+        kind: "info",
+        text: `⌛️ Waiting for ${THROTTLE_MS / 1000}s to respect rate limits...`,
+      });
+      await sleep(THROTTLE_MS);
+    }
     sendStep({ kind: "iteration", number: iteration + 1 });
 
     let response;
@@ -192,7 +217,10 @@ async function runAgent() {
 
     // No tool calls → final answer
     if (toolCalls.length === 0) {
-      sendStep({ kind: "final", text: textOutput.trim() || "(no text response)" });
+      sendStep({
+        kind: "final",
+        text: textOutput.trim() || "(no text response)",
+      });
       return;
     }
 
@@ -229,7 +257,10 @@ async function runAgent() {
     history.push({ role: "user", parts: toolResponseParts });
   }
 
-  sendStep({ kind: "error", text: "Hit max iterations without a final verdict." });
+  sendStep({
+    kind: "error",
+    text: "Hit max iterations without a final verdict.",
+  });
 }
 
 // ============================================================

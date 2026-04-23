@@ -23,7 +23,7 @@ MODEL_NAME = "gemini-3.1-flash-lite-preview"
 # MODEL_NAME = "gemini-3-flash-preview"
 # MODEL_NAME = "gemini-2.5-flash-lite"
 # MODEL_NAME = "gemini-2.5-flash"
-#MODEL_NAME = "gemma-4-31b-it"
+# MODEL_NAME = "gemma-4-31b-it"
 # MODEL_NAME = "gemma-4-26b-a4b-it"
 
 MAX_ITERATIONS = 5
@@ -34,13 +34,14 @@ THROTTLE_SECONDS = 6
 # TOOLS — actual Python implementations
 # ============================================================
 
+
 def get_current_product():
     """In the Chrome extension, this reads the DOM. Here we hardcode."""
     return {
         "name": "Sony WH-1000XM5 Wireless Headphones",
         "price_inr": 29990,
         "site": "amazon.in",
-        "url": "https://www.amazon.in/dp/B09XS7JWHH"
+        "url": "https://www.amazon.in/dp/B09XS7JWHH",
     }
 
 
@@ -55,11 +56,13 @@ def search_web(query: str):
 
     results = []
     for item in data.get("organic", [])[:8]:
-        results.append({
-            "title": item.get("title"),
-            "snippet": item.get("snippet"),
-            "link": item.get("link"),
-        })
+        results.append(
+            {
+                "title": item.get("title"),
+                "snippet": item.get("snippet"),
+                "link": item.get("link"),
+            }
+        )
     return {"query": query, "results": results}
 
 
@@ -67,6 +70,7 @@ def fetch_page_text(url: str):
     """Fetch a URL and return the first chunk of its visible text."""
     try:
         from bs4 import BeautifulSoup
+
         headers = {"User-Agent": "Mozilla/5.0 (shopping-agent)"}
         resp = requests.get(url, headers=headers, timeout=15)
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -104,9 +108,7 @@ search_web_decl = types.FunctionDeclaration(
     ),
     parameters_json_schema={
         "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Search query"}
-        },
+        "properties": {"query": {"type": "string", "description": "Search query"}},
         "required": ["query"],
     },
 )
@@ -116,18 +118,20 @@ fetch_page_text_decl = types.FunctionDeclaration(
     description="Fetch the text content of a specific URL. Use when a search snippet isn't enough.",
     parameters_json_schema={
         "type": "object",
-        "properties": {
-            "url": {"type": "string", "description": "Full URL to fetch"}
-        },
+        "properties": {"url": {"type": "string", "description": "Full URL to fetch"}},
         "required": ["url"],
     },
 )
 
-tools = [types.Tool(function_declarations=[
-    get_current_product_decl,
-    search_web_decl,
-    fetch_page_text_decl,
-])]
+tools = [
+    types.Tool(
+        function_declarations=[
+            get_current_product_decl,
+            search_web_decl,
+            fetch_page_text_decl,
+        ]
+    )
+]
 
 
 # ============================================================
@@ -156,6 +160,7 @@ Rules:
 # AGENT LOOP
 # ============================================================
 
+
 def run_agent():
     client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -169,7 +174,9 @@ def run_agent():
 
     # The growing conversation history. Every turn we append to this.
     history = [
-        types.Content(role="user", parts=[types.Part(text="Should I buy this product?")])
+        types.Content(
+            role="user", parts=[types.Part(text="Should I buy this product?")]
+        )
     ]
 
     print("=" * 60)
@@ -234,10 +241,12 @@ def run_agent():
             preview = json.dumps(result, ensure_ascii=False)
             print(f"📥 Result: {preview[:400]}{'...' if len(preview) > 400 else ''}")
 
-            tool_response_parts.append(types.Part.from_function_response(
-                name=tool_name,
-                response=result,
-            ))
+            tool_response_parts.append(
+                types.Part.from_function_response(
+                    name=tool_name,
+                    response=result,
+                )
+            )
 
         # --- Append tool results to history as a "user" turn ---
         history.append(types.Content(role="user", parts=tool_response_parts))
@@ -256,4 +265,4 @@ if __name__ == "__main__":
         print("   Serper: https://serper.dev")
         exit(1)
 
-    run_agent() 
+    run_agent()
